@@ -138,6 +138,7 @@ data.set <- merge(data, to_join, by = c("Site", "Date"), all.x=T) %>%
   mutate(species_100hours = length(unique(Species))*100/total_net_hours_day,
          captures_100hours = n()*100/total_net_hours_day)
 
+# Check which lines don't have information for total_net_hours_day 
 View(data.set[is.na(data.set$total_net_hours_day),])
 
 write.csv(data.set, "all_joined.csv")
