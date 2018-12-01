@@ -5,13 +5,6 @@ library(lubridate)
 # Set directory to source file location
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Function to mutate data set in dplyr under a condition
-mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
-  condition <- eval(substitute(condition), .data, envir)
-  .data[condition, ] <- .data[condition, ] %>% mutate(...)
-  .data
-}
-
 # Read in the raw data, and do modifications
 data <- read.csv("OpWall band data all.csv", header=T, na.strings=c("","NA", "-")) %>% 
   mutate(Date = dmy(Date), field.season = year(Date)) %>% 
