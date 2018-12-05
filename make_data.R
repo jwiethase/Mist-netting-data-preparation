@@ -89,7 +89,8 @@ data$Species[data$Species == "Glyphorhynchus spirurus"] <- "Glyphorynchus spirur
 data$Species[data$Species == "Myrmoderus ferruginea"] <- "Myrmoderus ferrugineus"
 data$Species[data$Species == "Phoenicercus carnifex"] <- "Phoenicircus carnifex"
 data$Species[data$Species == "Willisornis poeciliontus"] <- "Willisornis poecilinotus"
-
+data$Species[data$Species == "Thamnomanes ardesicaus"] <- "Thamnomanes ardesiacus"
+data$Species[data$Species == "Myrmoderus ferrugineus"] <- "Myrmeciza ferruginea"
 
 data$Species[data$Species == "Platyrincus saturatus"] <- "Platyrinchus saturatus"
 
@@ -156,7 +157,10 @@ stotztraits <- read.csv("species_classification.csv") %>%
 Species.df <- data.frame(Species = unique(data.set$Species))
 
 classif.df <- merge(eltontraits, stotztraits, by = "Species", all.x = FALSE, all.y = TRUE) %>% unique() %>% dplyr::select(-X)
+full.data <- merge(classif.df, data.set, by = "Species", all.x = FALSE, all.y = TRUE) %>% unique() 
+
 
 write.csv(classif.df, "species_classif.csv")
 write.csv(data, "all_joined.csv")
+write.csv(full.data, "full.data.csv")
                   
