@@ -147,13 +147,16 @@ data.set <- merge(data, to_join, by = c("Site", "Date"), all.x=T) %>%
 # Check which lines don't have information for total_net_hours_day 
 View(data.set[is.na(data.set$total_net_hours_day),])
 
-# Add EltonTraits 1.0: Species‐level foraging attributes
+# Add EltonTraits 1.0: Species‐level foraging attributes, plus attributes from Neotropical Birds by Stotz et al.
 
 eltontraits <- read.csv("eltontraits.csv") %>% 
   dplyr::select(-c(Diet.EnteredBy, ForStrat.EnteredBy))
+stotztraits <- read.csv("species_classification.csv") %>% 
+  dplyr::select(-c(X, records, primary.food.source))
+Species.df <- data.frame(Species = unique(data.set$Species))
 
-test2 <- merge(data.set, eltontraits, by = "Species", all.x = TRUE, all.y = FALSE) %>% unique()
+classif.df <- merge(eltontraits, stotztraits, by = "Species", all.x = FALSE, all.y = TRUE) %>% unique() %>% dplyr::select(-X)
 
-
-write.csv(test2, "all_joined.csv")
+write.csv(classif.df, "species_classif.csv")
+write.csv(data, "all_joined.csv")
                   
