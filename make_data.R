@@ -6,12 +6,12 @@ library(lubridate)
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Read in the raw data, and do modifications
-data <- read.csv("OpWall band data all.csv", header=T, na.strings=c("","NA", "-")) %>% 
+data <- read.csv("../data files/OpWall band data all.csv", header=T, na.strings=c("","NA", "-")) %>% 
   mutate(Date = dmy(Date), field.season = year(Date)) %>% 
   dplyr::rename(Sex = Sex.method)
 
 # Read in file containing the mist netting locations
-locations <- read.csv("Sites coordinates.csv") %>% 
+locations <- read.csv("../data files/Sites coordinates.csv") %>% 
   dplyr::rename(Loc = Abbreviation, Latitude = lat, Longitude = lon) %>% 
   dplyr::select(-"Site")
 
@@ -74,6 +74,26 @@ data <- merge(data, locations, by = "Loc", all.x = TRUE) %>%
   dplyr::rename(Site = Loc) %>% 
   dplyr::mutate(Date = date(DateTime))
 
+# Check recaptures:
+data <- data %>% 
+  group_by(Band.ID) %>% arrange(Date) %>% 
+  mutate(days_diff = as.integer(difftime(Date, lag(Date), units='days'))) %>% ungroup()
+data$days_diff[is.na(data$days_diff)] <- 0
+
+# Remove same-day recaptures
+data <- data %>% 
+  dplyr::group_by(Band.ID) %>% 
+  dplyr::mutate(days_diff = max(days_diff),
+                nID = n()) %>% 
+  dplyr::filter(!(days_diff == 0 & nID > 1)) %>%  # Rows containing '0' in 'days_diff' might be same-day recaptures, and need to be removed
+  ungroup()
+
+# Remove same-season recaptures
+data <- data %>% 
+  dplyr::group_by(Band.ID) %>% 
+  dplyr::filter(days_diff > 300 | days_diff == 0) %>% # Every row containing '0' in 'days_diff' is now a bird captured only once
+  ungroup()
+
 # Correct Band.ID and Species errors in th emain data set 
 data$Band.ID <- as.character(data$Band.ID)
 data$Species <- as.character(data$Species)
@@ -91,6 +111,9 @@ data$Species[data$Species == "Phoenicercus carnifex"] <- "Phoenicircus carnifex"
 data$Species[data$Species == "Willisornis poeciliontus"] <- "Willisornis poecilinotus"
 data$Species[data$Species == "Thamnomanes ardesicaus"] <- "Thamnomanes ardesiacus"
 data$Species[data$Species == "Myrmoderus ferrugineus"] <- "Myrmeciza ferruginea"
+data$Species[data$Species == "Pipra erythrocephala"] <- "Ceratopipra erythrocephala"
+
+
 
 data$Species[data$Species == "Platyrincus saturatus"] <- "Platyrinchus saturatus"
 
@@ -118,7 +141,7 @@ data <- data %>%
   dplyr::rename(Recap = Recap.)
 
 # Read in effort sheet, standardise date and time values
-effort_sheet <- read.csv("OpWall effort sheet all.csv") %>%
+effort_sheet <- read.csv("../data files/OpWall effort sheet all.csv") %>%
   dplyr::mutate(
     Date = dmy(Date),
     open = sprintf("%04d", as.numeric(as.character(open))),
@@ -143,24 +166,25 @@ to_join$Site <- as.character(to_join$Site)
 data.set <- merge(data, to_join, by = c("Site", "Date"), all.x=T) %>% 
   dplyr::group_by(Date, Site) %>% 
   dplyr::mutate(species_100hours = length(unique(Species))*100/total_net_hours_day,
-         captures_100hours = n()*100/total_net_hours_day)
+         captures_100hours = n()*100/total_net_hours_day,
+         Age = substr(Age, start = 1, stop = 1),
+         Sex = substr(Sex, start = 1, stop = 1))
 
 # Check which lines don't have information for total_net_hours_day 
 View(data.set[is.na(data.set$total_net_hours_day),])
 
 # Add EltonTraits 1.0: Species‐level foraging attributes, plus attributes from Neotropical Birds by Stotz et al.
-
-eltontraits <- read.csv("eltontraits.csv") %>% 
+eltontraits <- read.csv("../data files/eltontraits.csv") %>% 
   dplyr::select(-c(Diet.EnteredBy, ForStrat.EnteredBy))
-stotztraits <- read.csv("species_classification.csv") %>% 
-  dplyr::select(-c(X, records, primary.food.source))
+stotztraits <- read.csv("../data files/stotz_classification.csv") %>% 
+  dplyr::select(-c(records))
 Species.df <- data.frame(Species = unique(data.set$Species))
 
 classif.df <- merge(eltontraits, stotztraits, by = "Species", all.x = FALSE, all.y = TRUE) %>% unique() %>% dplyr::select(-X)
 full.data <- merge(classif.df, data.set, by = "Species", all.x = FALSE, all.y = TRUE) %>% unique() 
 
 
-write.csv(classif.df, "species_classif.csv")
-write.csv(data, "all_joined.csv")
-write.csv(full.data, "full.data.csv")
+write.csv(classif.df, "../data files/species_classif.csv")
+write.csv(data, "../data files/all_joined.csv")
+write.csv(full.data, "../data files/full.data.csv")
                   
