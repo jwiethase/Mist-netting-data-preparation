@@ -74,11 +74,17 @@ data <- merge(data, locations, by = "Loc", all.x = TRUE) %>%
   dplyr::rename(Site = Loc) %>% 
   dplyr::mutate(Date = date(DateTime))
 
-# Check recaptures:
-data <- data %>% 
-  group_by(Band.ID) %>% arrange(Date) %>% 
-  mutate(days_diff = as.integer(difftime(Date, lag(Date), units='days'))) %>% ungroup()
-data$days_diff[is.na(data$days_diff)] <- 0
+# Create data frame containing all the unnecessarily recorded same season recaptures:
+ssr <- data %>% 
+  group_by(Band.ID, field.season, Species) %>% 
+  filter(n() > 1, !is.na(Band.ID), !is.na(DateTime), DateTime > min(DateTime)) 
+
+# Create unique identifier value in both data sets
+ssr$unID <- paste(ssr$DateTime, ssr$Band.ID)
+data$unID <- paste(data$DateTime, data$Band.ID)
+
+# Exclude those rows from the main data set
+data <- data[data$unID %in% ssr$unID == FALSE,]
 
 # Remove same-day recaptures
 data <- data %>% 
