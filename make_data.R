@@ -86,20 +86,6 @@ data$unID <- paste(data$DateTime, data$Band.ID)
 # Exclude those rows from the main data set
 data <- data[data$unID %in% ssr$unID == FALSE,]
 
-# Remove same-day recaptures
-data <- data %>% 
-  dplyr::group_by(Band.ID) %>% 
-  dplyr::mutate(days_diff = max(days_diff),
-                nID = n()) %>% 
-  dplyr::filter(!(days_diff == 0 & nID > 1)) %>%  # Rows containing '0' in 'days_diff' might be same-day recaptures, and need to be removed
-  ungroup()
-
-# Remove same-season recaptures
-data <- data %>% 
-  dplyr::group_by(Band.ID) %>% 
-  dplyr::filter(days_diff > 300 | days_diff == 0) %>% # Every row containing '0' in 'days_diff' is now a bird captured only once
-  ungroup()
-
 # Correct Band.ID and Species errors in th emain data set 
 data$Band.ID <- as.character(data$Band.ID)
 data$Species <- as.character(data$Species)
